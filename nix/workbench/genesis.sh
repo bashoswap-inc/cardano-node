@@ -199,6 +199,39 @@ case "$op" in
         ## TODO: try to get rid of this step:
         Massage_the_key_file_layout_to_match_AWS "$profile_json" "$topo_dir" "$dir";;
 
+    derive-from-cache )
+        local usage="USAGE:  wb genesis $op PROFILE-JSON CACHE-ENTRY-DIR OUTDIR"
+        local profile_json=${1:?$usage}
+        local cache_entry=${2:?$usage}
+        local outdir=${3:?$usage}
+
+        msg "genesis | derive-from-cache:  $cache_entry -> $outdir"
+        ls -l $cache_entry
+
+        mkdir -p "$outdir"
+        ( cd $outdir
+          ln -s $cache_entry cache-entry
+          ln -s $profile_json
+          ln -s $cache_entry/cache.key
+          ln -s $cache_entry/cache.key.input
+          ln -s $cache_entry/layout.version
+          ## keys
+          ln -s $cache_entry/delegate-keys
+          ln -s $cache_entry/genesis-keys
+          cp    $cache_entry/node-keys . -a
+          chmod -R    go-rwx node-keys
+          ln -s $cache_entry/pools
+          ln -s $cache_entry/stake-delegator-keys
+          ln -s $cache_entry/utxo-keys
+          ## JSON
+          cp -v $cache_entry/genesis*.json .
+          chmod u+w          genesis*.json
+        )
+        genesis finalise-cache-entry $profile_json $outdir
+
+        ls -l $outdir/node-keys
+        ;;
+
     finalise-cache-entry )
         local usage="USAGE:  wb genesis $op PROFILE-JSON DIR"
         local profile_json=${1:?$usage}
