@@ -34,6 +34,8 @@ module Cardano.Api.Modes (
     -- * Conversions to and from types in the consensus library
     ConsensusBlockForMode,
     ConsensusBlockForEra,
+    ConsensusEraForBlock,
+    ConsensusBlockForEraMode,
     toConsensusEraIndex,
     fromConsensusEraIndex,
   ) where
@@ -43,7 +45,7 @@ import           Prelude
 import           Cardano.Api.Eras
 import           Cardano.Ledger.Crypto (StandardCrypto)
 
-import           Data.Aeson (Value, FromJSON (parseJSON), ToJSON (toJSON))
+import           Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON), Value)
 import           Data.Aeson.Types (Parser, prependFailure, typeMismatch)
 import           Data.SOP.Strict (K (K), NS (S, Z))
 import           Data.Text (Text)
@@ -53,11 +55,8 @@ import qualified Ouroboros.Consensus.Cardano.Block as Consensus
 import qualified Ouroboros.Consensus.Cardano.ByronHFC as Consensus (ByronBlockHFC)
 import           Ouroboros.Consensus.HardFork.Combinator as Consensus (EraIndex (..), eraIndexSucc,
                    eraIndexZero)
-import           Ouroboros.Consensus.Shelley.Eras
-                   (StandardShelley,
-                    StandardAllegra,
-                    StandardMary,
-                    StandardAlonzo)
+import           Ouroboros.Consensus.Shelley.Eras (StandardAllegra, StandardAlonzo, StandardMary,
+                   StandardShelley)
 import qualified Ouroboros.Consensus.Shelley.Ledger as Consensus
 import qualified Ouroboros.Consensus.Shelley.ShelleyHFC as Consensus (ShelleyBlockHFC)
 
@@ -288,12 +287,31 @@ type family ConsensusBlockForMode mode where
   ConsensusBlockForMode ShelleyMode = Consensus.ShelleyBlockHFC StandardShelley
   ConsensusBlockForMode CardanoMode = Consensus.CardanoBlock StandardCrypto
 
+
+type family ConsensusEraForBlock consensusblock where
+  ConsensusEraForBlock (Consensus.HardForkBlock '[Consensus.ByronBlock]) = ByronEra
+  ConsensusEraForBlock (Consensus.HardForkBlock '[Consensus.ShelleyBlock StandardShelley]) = ShelleyEra
+  ConsensusEraForBlock (Consensus.HardForkBlock '[Consensus.ShelleyBlock StandardAllegra]) = AllegraEra
+  ConsensusEraForBlock (Consensus.HardForkBlock '[Consensus.ShelleyBlock StandardMary]) = MaryEra
+  ConsensusEraForBlock (Consensus.HardForkBlock '[Consensus.ShelleyBlock StandardAlonzo]) = AlonzoEra
+
 type family ConsensusBlockForEra era where
   ConsensusBlockForEra ByronEra   = Consensus.ByronBlock
   ConsensusBlockForEra ShelleyEra = Consensus.ShelleyBlock StandardShelley
   ConsensusBlockForEra AllegraEra = Consensus.ShelleyBlock StandardAllegra
   ConsensusBlockForEra MaryEra    = Consensus.ShelleyBlock StandardMary
   ConsensusBlockForEra AlonzoEra  = Consensus.ShelleyBlock StandardAlonzo
+
+type family ConsensusBlockForEraMode era mode where
+  ConsensusBlockForEraMode ByronEra  ByronMode = Consensus.ByronBlock
+  ConsensusBlockForEraMode ShelleyEra ShelleyMode = Consensus.ShelleyBlock StandardShelley
+
+  ConsensusBlockForEraMode ByronEra   CardanoMode = Consensus.ByronBlock
+  ConsensusBlockForEraMode ShelleyEra CardanoMode = Consensus.ShelleyBlockHFC StandardShelley
+  ConsensusBlockForEraMode AllegraEra CardanoMode = Consensus.ShelleyBlockHFC StandardAllegra
+  ConsensusBlockForEraMode MaryEra    CardanoMode = Consensus.ShelleyBlockHFC StandardMary
+  ConsensusBlockForEraMode AlonzoEra  CardanoMode = Consensus.ShelleyBlockHFC StandardAlonzo
+
 
 
 
